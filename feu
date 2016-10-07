@@ -1,0 +1,179 @@
+#!/usr/bin/env ruby
+
+class FeuError < StandardError;end
+class FeuParseError < FeuError;end
+
+class Feu
+    class END_MARKER;end
+
+    def self.parse(lines, level=0)
+        ast = []
+        until lines.empty?
+            line = lines.shift.strip
+            line.gsub! /#.+$/
+            next if line.empty?
+            return ast if line.downcase == "end"
+            line = [line, parse(lines, level + 1)] if line[0] == "/"
+            ast << line
+        end
+        fail FeuParseError, "Unmatched blocks" if level > 0
+        ast
+    end
+
+    def initialize(ast, input)
+        @ast = ast
+        @input = input
+    end
+
+    def expect(tokens, char)
+        c = tokens.shift
+        if c != char
+            fail FeuParseError, "Expected #{char.inspect}, got #{c.inspect}"
+        end
+    end
+
+    def eval_str(str)
+        eval "%/#{str.gsub("#", "\\#").gsub /\\(\d+)/, %q{\\\\\\\\\1}}/" # dafuq
+    end
+
+    def read(tokens, end_char="/")
+        s = ""
+        c = nil
+        loop do
+            c = tokens.shift
+            if c == "\\"
+                c += tokens.shift
+            elsif c == end_char or c.nil?
+                break
+            end
+            s += c
+        end
+        s
+    end
+
+    def flag?(flags, flag)
+        ok = flags.include? flag
+        flags.gsub! flag, ""
+        ok
+    end
+
+    def exec_line(tokens)
+        tokens, body = tokens if tokens.class == Array
+        tokens = tokens.chars
+        mode = tokens.shift
+        case mode
+        when "/"
+            regex = read tokens
+            flags = read tokens, nil
+            g = flag? flags, "g"
+            matches = @input.scan Regexp.new(regex, flags)
+            matches = matches.take 1 unless g
+            str = ""
+            matches.each do |match|
+                @input = match
+                break if _exec(body) == END_MARKER
+                str += @input
+            end
+            @input = str
+        when "s"
+            expect tokens, "/"
+            regex = read tokens
+            sub = eval_str read tokens
+            flags = read tokens, nil
+            g = flag? flags, "g"
+            re = Regexp.new regex, flags
+            if g
+                @input.gsub! re, sub
+            else
+                @input.sub! re, sub
+            end
+        when "e"
+            expect tokens, "/"
+            regex = read tokens
+            flags = read tokens, nil
+            flag? flags, "g"
+            nflag = flag? flags, "!"
+            b = @input =~ Regexp.new(regex, flags)
+            b = !b if nflag
+            return END_MARKER if b
+        when "m"
+            expect tokens, "/"
+            map = {}
+            flags = ""
+            loop do
+                a = read tokens
+                if tokens.empty?
+                    flags = a
+                    break
+                end
+                b = read tokens
+                map[a] = eval_str b
+            end
+            g = flag? flags, "g"
+            flag? flags, "/"
+            map.each do |k, v|
+                re = Regexp.new k, flags
+                if g
+                    @input.gsub! re, v
+                else
+                    @input.sub! re, v
+                end
+            end
+        when "a"
+            expect tokens, "/"
+            @input += eval_str read tokens, nil
+        when "p"
+            expect tokens, "/"
+            @input = eval_str(read(tokens, nil)) + @input
+        when "u"
+            expect tokens, "/"
+            c = eval_str read tokens, nil
+            c = "0" if c.empty?
+            fail FeuParseError, "Unary conversion only support single characters" if c.length != 1
+            @input = c * @input.to_i.abs
+        when "U"
+            expect tokens, "/"
+            c = eval_str read tokens, nil
+            c = "0" if c.empty?
+            fail FeuParseError, "Unary conversion only support single characters" if c.length != 1
+            @input = @input.count c
+        end
+    end
+
+    def _exec(lines)
+        lines.each do |line|
+            return END_MARKER if exec_line(line) == END_MARKER
+        end
+    end
+    
+    def exec
+        _exec @ast
+        STDOUT.write @input
+    end
+end
+
+USAGE = "\tFEU - File Edition Utility
+Usage: #$0 {<code>|-f <file>} [infile]
+
+code\tFEU code
+file\tFile containing FEU code
+infile\tInput file (If ommited, read from STDIN)"
+
+if $0 == __FILE__
+    unless ARGV.length >= 1 and ARGV.length <= 2
+        puts USAGE
+        exit 1
+    end
+
+    arg = ARGV.shift
+    if arg == "-f"
+        code = File.read ARGV.shift
+    else
+        code = arg
+    end
+
+    input = ARGV.empty? ? STDIN.read : input
+
+    feu = Feu.new(Feu.parse(code.lines.map &:chomp), input)
+    feu.exec
+end
