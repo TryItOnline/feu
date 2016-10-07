@@ -1,6 +1,6 @@
 # FEU
 
-*File Modification Utility*
+*File Edition Utility*
 
 (Fun fact: Feu mean fire in French)
 
