@@ -12,7 +12,7 @@ class Feu
     def self.parse(lines, level=0)
         ast = []
         until lines.empty?
-            line = lines.shift.strip
+            line = lines.shift
             next if line.empty?
             return ast if line.downcase == "end"
             if line[0] == "/" or
@@ -267,8 +267,25 @@ if $0 == __FILE__
         code = arg
     end
 
-    input = ARGV.empty? ? STDIN.read : input
+    lines = code.lines.map &:strip
 
-    feu = Feu.new(Feu.parse(code.lines.map &:chomp), input, safe)
+    if lines.include? "__DATA__"
+        _lines = []
+        input = []
+        arr = _lines
+        lines.each do |line|
+            if line == "__DATA__"
+                arr = input
+            else
+                arr << line
+            end
+        end
+        lines = _lines
+        input = input.join "\n"
+    else
+        input = ARGV.empty? ? STDIN.read : input
+    end
+
+    feu = Feu.new(Feu.parse(lines), input, safe)
     feu.exec
 end

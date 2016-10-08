@@ -21,6 +21,7 @@ A line can also be a keyword:
 * `do number` Execute a block a specified number of times
 * `func name` Define a function
 * `call name` Call a function
+* `__DATA__` The rest of the file is the input to the program
 
 |Mode|Command format|Description|
 |:-:|:-:|:-:|
