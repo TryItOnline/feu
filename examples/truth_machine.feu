@@ -1,0 +1,4 @@
+loop
+    e/0
+    print
+end

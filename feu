@@ -17,6 +17,7 @@ class Feu
             return ast if line.downcase == "end"
             if line[0] == "/" or
                line == "loop" or
+               line == "line" or
                line.start_with? "func" or
                line.start_with? "do"
                 line = [line, parse(lines, level + 1)]
@@ -74,6 +75,19 @@ class Feu
             loop do
                 break if _exec(body) == END_MARKER
             end
+            return
+        elsif tokens == "line"
+            lines = @input.lines.map &:chomp
+            lines_ = []
+            lines.each do |line|
+                @input = line
+                break if _exec(body) == END_MARKER
+                lines_ << @input
+            end
+            @input = lines_.join "\n"
+            return
+        elsif tokens == "print"
+            STDOUT.write @input
             return
         elsif tokens.start_with? "do"
             arr = tokens.split(/\s+/).drop 1

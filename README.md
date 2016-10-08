@@ -18,6 +18,8 @@ A line can also be a keyword:
 
 * `end` End a block
 * `loop` Start an infinite loop
+* `line` Execute a block for each line of the input
+* `print` Print the input
 * `do number` Execute a block a specified number of times
 * `func name` Define a function
 * `call name` Call a function
