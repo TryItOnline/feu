@@ -1,7 +1,10 @@
 #!/usr/bin/env ruby
 
+require "open3"
+
 class FeuError < StandardError;end
 class FeuParseError < FeuError;end
+class FeuRuntimeError < FeuError;end
 
 class Feu
     class END_MARKER;end
@@ -12,18 +15,25 @@ class Feu
             line = lines.shift.strip
             next if line.empty?
             return ast if line.downcase == "end"
-            line = [line, parse(lines, level + 1)] if line[0] == "/" or line == "loop"
+            if line[0] == "/" or
+               line == "loop" or
+               line.start_with? "func" or
+               line.start_with? "do"
+                line = [line, parse(lines, level + 1)]
+            end
             ast << line
         end
         fail FeuParseError, "Unmatched blocks" if level > 0
         ast
     end
 
-    def initialize(ast, input)
+    def initialize(ast, input, safe)
         @ast = ast
         @input = input
         @vars = {}
         @stack = []
+        @funcs = {}
+        @safe = safe
     end
 
     def expect(tokens, char)
@@ -64,6 +74,24 @@ class Feu
             loop do
                 break if _exec(body) == END_MARKER
             end
+            return
+        elsif tokens.start_with? "do"
+            arr = tokens.split(/\s+/).drop 1
+            fail FeuParseError, "Expected 1 argument to do, got #{arr.length}" if arr.length != 1
+            (1..arr[0].to_i).each do |_|
+                break if _exec(body) == END_MARKER
+            end
+            return
+        elsif tokens.start_with? "func"
+            arr = tokens.split(/\s+/).drop 1
+            fail FeuParseError, "Expected 1 argument to func, got #{arr.length}" if arr.length != 1
+            @funcs[arr[0]] = body
+            return
+        elsif tokens.start_with? "call"
+            arr = tokens.split(/\s+/).drop 1
+            fail FeuParseError, "Expected 1 argument to call, got #{arr.length}" if arr.length != 1
+            func = @funcs[arr[0]]
+            _exec func
             return
         end
         tokens = tokens.chars
@@ -144,6 +172,15 @@ class Feu
             c = "0" if c.empty?
             fail FeuParseError, "Unary conversion only support single characters" if c.length != 1
             @input = @input.count c
+        when "S"
+            fail FeuRuntimeError, "Shell commands can't be executed in safe mode" if @safe
+            expect tokens, "/"
+            cmd = read tokens
+            args = []
+            until tokens.empty?
+                args << read(tokens)
+            end
+            @input, _, _ = Open3.capture3 cmd, *args, :stdin_data => @input
         when "E"
             mode = tokens.shift
             case mode
@@ -203,16 +240,24 @@ class Feu
 end
 
 USAGE = "\tFEU - File Edition Utility
-Usage: #$0 {<code>|-f <file>} [infile]
+Usage: #$0 [--safe] {<code>|-f <file>} [infile]
 
 code\tFEU code
 file\tFile containing FEU code
-infile\tInput file (If ommited, read from STDIN)"
+infile\tInput file (If ommited, read from STDIN)
+--safe\tRun in safe mode (no subshells)"
 
 if $0 == __FILE__
-    unless ARGV.length >= 1 and ARGV.length <= 2
+    unless ARGV.length >= 1 and ARGV.length <= 3
         puts USAGE
         exit 1
+    end
+
+    if ARGV.include? "--safe"
+        safe = true
+        ARGV.delete "--safe"
+    else
+        safe = false
     end
 
     arg = ARGV.shift
@@ -224,6 +269,6 @@ if $0 == __FILE__
 
     input = ARGV.empty? ? STDIN.read : input
 
-    feu = Feu.new(Feu.parse(code.lines.map &:chomp), input)
+    feu = Feu.new(Feu.parse(code.lines.map &:chomp), input, safe)
     feu.exec
 end

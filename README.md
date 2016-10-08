@@ -18,6 +18,9 @@ A line can also be a keyword:
 
 * `end` End a block
 * `loop` Start an infinite loop
+* `do number` Execute a block a specified number of times
+* `func name` Define a function
+* `call name` Call a function
 
 |Mode|Command format|Description|
 |:-:|:-:|:-:|
@@ -30,6 +33,7 @@ A line can also be a keyword:
 |`u`nary|`u/character`|Convert the input from decimal to unary using a specified character (the sign is ignored)|
 |`U`nary|`U/character`|Convert the input from unary to decimal with a specified unary character|
 |`i`gnore|`i/text`|Comment|
+|`S`hell|`S/command/arg1/arg2/.../argN`|Execute a shell command|
 |`E`xtended|`ecommand`|Execute an extended command|
 
 Extended commands:

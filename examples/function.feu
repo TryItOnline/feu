@@ -1,0 +1,10 @@
+func f
+    S/wc
+end
+func g
+    s/^(.+)$/\1\1
+end
+do 10
+    call g
+    call f
+end
