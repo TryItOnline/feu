@@ -283,7 +283,7 @@ if $0 == __FILE__
         lines = _lines
         input = input.join "\n"
     else
-        input = ARGV.empty? ? STDIN.read : input
+        input = ARGV.empty? ? STDIN.read : File.read(ARGV.shift)
     end
 
     feu = Feu.new(Feu.parse(lines), input, safe)
