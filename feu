@@ -183,10 +183,10 @@ class Feu
                 var = read tokens, nil
                 @input = (@vars[var] or "") + @input
             else
-                fail FeuParseError, "Unknow extended mode #{mode.inspect}"
+                fail FeuParseError, "Unknown extended mode #{mode.inspect}"
             end
         else
-            fail FeuParseError, "Unknow mode #{mode.inspect}"
+            fail FeuParseError, "Unknown mode #{mode.inspect}"
         end
     end
 
