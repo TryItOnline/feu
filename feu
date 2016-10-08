@@ -269,6 +269,8 @@ if $0 == __FILE__
 
     lines = code.lines.map &:strip
 
+    lines.shift if lines[0] =~ /^#!.+$/
+
     if lines.include? "__DATA__"
         _lines = []
         input = []
