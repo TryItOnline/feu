@@ -10,10 +10,9 @@ class Feu
         ast = []
         until lines.empty?
             line = lines.shift.strip
-            line.gsub! /#.+$/
             next if line.empty?
             return ast if line.downcase == "end"
-            line = [line, parse(lines, level + 1)] if line[0] == "/"
+            line = [line, parse(lines, level + 1)] if line[0] == "/" or line == "loop"
             ast << line
         end
         fail FeuParseError, "Unmatched blocks" if level > 0
@@ -23,6 +22,8 @@ class Feu
     def initialize(ast, input)
         @ast = ast
         @input = input
+        @vars = {}
+        @stack = []
     end
 
     def expect(tokens, char)
@@ -59,6 +60,12 @@ class Feu
 
     def exec_line(tokens)
         tokens, body = tokens if tokens.class == Array
+        if tokens == "loop"
+            loop do
+                break if _exec(body) == END_MARKER
+            end
+            return
+        end
         tokens = tokens.chars
         mode = tokens.shift
         case mode
@@ -137,6 +144,49 @@ class Feu
             c = "0" if c.empty?
             fail FeuParseError, "Unary conversion only support single characters" if c.length != 1
             @input = @input.count c
+        when "E"
+            mode = tokens.shift
+            case mode
+            when "s"
+                expect tokens, "/"
+                var = read tokens
+                regex = read tokens
+                flags = read tokens, nil
+                g = flag? flags, "g"
+                re = Regexp.new regex, flags
+                if g
+                    s = @input.scan(re).join
+                else
+                    s = @input.match(re)[0]
+                end
+                @vars[var] = s
+            when "p"
+                expect tokens, "/"
+                var = read tokens, nil
+                @stack << @input
+                @input = (@vars[var] or "")
+            when "P"
+                expect tokens, "/"
+                var = read tokens, nil
+                @vars[var] = @input
+                @input = @stack.pop
+            when "u"
+                expect tokens, "/"
+                var = read tokens, nil
+                @vars[var] = ""
+            when "a"
+                expect tokens, "/"
+                var = read tokens, nil
+                @input += (@vars[var] or "")
+            when "p"
+                expect tokens, "/"
+                var = read tokens, nil
+                @input = (@vars[var] or "") + @input
+            else
+                fail FeuParseError, "Unknow extended mode #{mode.inspect}"
+            end
+        else
+            fail FeuParseError, "Unknow mode #{mode.inspect}"
         end
     end
 

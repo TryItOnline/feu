@@ -1,0 +1,23 @@
+i/Multiplication program
+i/Take input as '\d+ \d+' and output the result of the multiplication
+Es/A/\d+
+Ep/A
+u/
+EP/A
+s/\d+
+Es/B/\d+
+Ep/B
+u/
+EP/B
+Es/C
+loop
+    Ep/A
+    e/./!
+    s/.
+    Ep/C
+    Ea/B
+    EP/C
+    EP/A
+end
+Ep/C
+U/

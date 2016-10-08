@@ -14,7 +14,10 @@ Commands are in this form:
 
     mode/arg1/arg2/.../argN
 
-A line can also be `end` to end a block command.
+A line can also be a keyword:
+
+* `end` End a block
+* `loop` Start an infinite loop
 
 |Mode|Command format|Description|
 |:-:|:-:|:-:|
@@ -26,6 +29,19 @@ A line can also be `end` to end a block command.
 |`p`repend|`p/text`|Prepend text at the start of the input (equivalent to `s/^/text`)|
 |`u`nary|`u/character`|Convert the input from decimal to unary using a specified character (the sign is ignored)|
 |`U`nary|`U/character`|Convert the input from unary to decimal with a specified unary character|
+|`i`gnore|`i/text`|Comment|
+|`E`xtended|`ecommand`|Execute an extended command|
+
+Extended commands:
+
+|Mode|Command format|Description|
+|:-:|:-:|:-:|
+|`s`et|`s/var/regex/flags`|Set a variable to the portions of the input matched by the regex|
+|`p`ush|`p/var`|Push the current input on the input stack and set the input to the specified variable|
+|`P`op|`p/var`|Set the variable to the current input and set the input to the value on the top of the input stack|
+|`u`ndefine|`u/var`|Undefine a variable|
+|`a`ppend|`a/var`|Append the content of a variable at the end of the input|
+|`p`repend|`p/var`|Prepend the content of a variable at the start of the input|
 
 ## Examples
 
